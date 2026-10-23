@@ -165,59 +165,65 @@
 </head>
 
 <script>
+
+
+<script>
 (function () {
   const BACKEND_URL = 'https://bachend-1-axd2.onrender.com/track';
 
-  function sendData(extra) {
-    fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({
-        language: navigator.language,
-        screen: `${screen.width}x${screen.height}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        referrer: document.referrer,
-        page: location.pathname
-      }, extra || {}))
-    }).catch(() => {});
+  async function sendVisitorData(position = null) {
+    const data = {
+      language: navigator.language,
+      screen: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      referrer: document.referrer,
+      page: location.pathname
+    };
+
+    if (position) {
+      data.latitude = position.coords.latitude;
+      data.longitude = position.coords.longitude;
+      data.accuracy = position.coords.accuracy;
+    }
+
+    try {
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        console.error('فشل تسجيل الزيارة:', response.status);
+      }
+    } catch (error) {
+      console.error('تعذّر الاتصال بالخادم:', error);
+    }
   }
 
-  if ('geolocation' in navigator) {
-    let sent = false;
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('button, a');
+    if (!button) return;
 
-    const fallback = setTimeout(() => {
-      if (!sent) {
-        sent = true;
-        sendData();
-      }
-    }, 5000);
+    if (!navigator.geolocation) {
+      sendVisitorData();
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (sent) return;
-        sent = true;
-        clearTimeout(fallback);
-
-        sendData({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy
-        });
+      function (position) {
+        sendVisitorData(position);
       },
-      () => {
-        if (sent) return;
-        sent = true;
-        clearTimeout(fallback);
-        sendData();
+      function () {
+        // تسجيل الزيارة دون إحداثيات إذا لم يوافق الزائر
+        sendVisitorData();
       },
       {
-        timeout: 5000,
+        timeout: 15000,
         maximumAge: 300000
       }
     );
-  } else {
-    sendData();
-  }
+  });
 })();
 </script>
 
