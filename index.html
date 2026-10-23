@@ -165,20 +165,52 @@
   </style>
 </head>
 <script>
+<script>
 (function () {
   const BACKEND_URL = 'https://bachend-1-axd2.onrender.com/track';
 
-  fetch(BACKEND_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      language: navigator.language,
-      screen: `${screen.width}x${screen.height}`,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      referrer: document.referrer,
-      page: location.pathname
-    })
-  }).catch(() => {});
+  function sendData(extra) {
+    fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({
+        language: navigator.language,
+        screen: `${screen.width}x${screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        referrer: document.referrer,
+        page: location.pathname
+      }, extra || {}))
+    }).catch(() => {});
+  }
+
+  if ('geolocation' in navigator) {
+    let sent = false;
+    const fallback = setTimeout(() => {
+      if (!sent) { sent = true; sendData(); }
+    }, 5000);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (sent) return;
+        sent = true;
+        clearTimeout(fallback);
+        sendData({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        });
+      },
+      () => {
+        if (sent) return;
+        sent = true;
+        clearTimeout(fallback);
+        sendData();
+      },
+      { timeout: 5000, maximumAge: 300000 }
+    );
+  } else {
+    sendData();
+  }
 })();
 </script>
 <body>
